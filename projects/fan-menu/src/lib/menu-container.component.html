@@ -30,6 +30,8 @@
         <div class="wing-wrapper" *ngFor="let wing of wings; let i = index">
             <app-menu-wing *ngIf="wingsState"
                            [position]="positionClass"
+                           [leaveWingTime]="leaveWingTime"
+                           [enterWingTime]="enterWingTime"
                            [wing]="wing"
                            [svgPath]="svgPath"
                            [index]="i"

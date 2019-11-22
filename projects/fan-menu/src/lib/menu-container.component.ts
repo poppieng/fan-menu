@@ -6,10 +6,10 @@ import {
     Component, OnInit, Input, HostListener,
     Output, EventEmitter, ViewChild, ElementRef, Renderer2, OnDestroy, ChangeDetectionStrategy, HostBinding
 } from '@angular/core';
-import { animate, animateChild, group, query, style, transition, trigger } from '@angular/animations';
-import { MenuOptions, IMenuConfig, IMenuWing } from './menu-options.service';
-import { Subscription } from 'rxjs';
-import { SpinService } from './menu-spin.service';
+import {animate, animateChild, group, query, style, transition, trigger} from '@angular/animations';
+import {MenuOptions, IMenuConfig, IMenuWing} from './menu-options.service';
+import {Subscription} from 'rxjs';
+import {SpinService} from './menu-spin.service';
 
 @Component({
     selector: 'app-menu-container',
@@ -86,6 +86,8 @@ export class MenuContainerComponent implements OnInit, OnDestroy {
     public menuConfig: any;
     public top: number; // for draggingMenu animation
     public left: number; // for draggingMenu animation
+    public leaveWingTime: number;
+    public enterWingTime: number;
 
     private allowTransition: boolean = true; // a flag to indicate if button text animation finished
     private isDragging: boolean = false; // A flag to indicate the drag move begins
@@ -104,10 +106,10 @@ export class MenuContainerComponent implements OnInit, OnDestroy {
     @HostBinding('@draggingMenu')
     public draggingState = {value: false, params: {top: this.top, left: this.left}};
 
-    constructor( private menuOptions: MenuOptions,
-                 private spinService: SpinService,
-                 private renderer: Renderer2,
-                 private elm: ElementRef) {
+    constructor(private menuOptions: MenuOptions,
+                private spinService: SpinService,
+                private renderer: Renderer2,
+                private elm: ElementRef) {
     }
 
     public ngOnInit() {
@@ -121,7 +123,11 @@ export class MenuContainerComponent implements OnInit, OnDestroy {
         this.setHostElementPosition(this.positionClass);
 
         this.menuSpunSubscriptionId =
-            this.spinService.wingSpun.subscribe(( data: number ) => this.spinMenu(data));
+            this.spinService.wingSpun.subscribe((data: number) => this.spinMenu(data));
+
+
+        this.leaveWingTime = this.options.leaveWingTime;
+        this.enterWingTime = this.options.enterWingTime;
     }
 
     public ngOnDestroy(): void {
@@ -138,14 +144,14 @@ export class MenuContainerComponent implements OnInit, OnDestroy {
     /**
      * Emit the wing that has been clicked
      * */
-    public clickWing( wing: IMenuWing ): void {
+    public clickWing(wing: IMenuWing): void {
         this.onWingSelected.emit(wing);
     }
 
     /**
      * Emit the wing that has been mouse over
      * */
-    public hoverWing( wing: IMenuWing ): void {
+    public hoverWing(wing: IMenuWing): void {
         if (!this.isDragging && !this.isSpinning) {
             this.onWingHovered.emit(wing);
         }
@@ -205,7 +211,7 @@ export class MenuContainerComponent implements OnInit, OnDestroy {
      * Binding to document panmove
      * */
     @HostListener('document:panmove', ['$event'])
-    public onMenuMove( event: any ): void {
+    public onMenuMove(event: any): void {
         if (this.isDragging) {
             let y = event.center.y;
             let x = event.center.x;
@@ -238,15 +244,15 @@ export class MenuContainerComponent implements OnInit, OnDestroy {
      * Spin the whole menu list
      * set the menuList transform style
      * */
-    public spinMenu( deg: number ): void {
+    public spinMenu(deg: number): void {
         this.renderer.setStyle(this.menuWingsElm.nativeElement, 'transform', 'rotate(' + deg + 'deg)');
     }
 
     /**
      * Change the isSpinning flag
      * */
-    public toggleSpinningState( state: boolean ): void {
-        if(state) {
+    public toggleSpinningState(state: boolean): void {
+        if (state) {
             this.onMenuListSpinning.emit(true);
         }
         this.isSpinning = state;

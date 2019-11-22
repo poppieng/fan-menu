@@ -6,10 +6,10 @@ import {
     Component, OnInit, Input, OnChanges, SimpleChanges, OnDestroy, Output, EventEmitter,
     ElementRef, Renderer2, HostBinding, ViewChild, AfterViewInit, ChangeDetectionStrategy
 } from '@angular/core';
-import { IMenuWing, MenuOptions } from './menu-options.service';
-import { SpinService } from './menu-spin.service';
-import { animate, state, style, transition, trigger } from '@angular/animations';
-import { Subscription } from 'rxjs';
+import {IMenuWing, MenuOptions} from './menu-options.service';
+import {SpinService} from './menu-spin.service';
+import {animate, state, style, transition, trigger} from '@angular/animations';
+import {Subscription} from 'rxjs';
 
 @Component({
     selector: 'app-menu-wing',
@@ -20,12 +20,12 @@ import { Subscription } from 'rxjs';
         trigger('rotateWing', [
             transition(':enter', [
                 style({transform: 'rotate({{startAngles}}deg) scale(0)'}),
-                animate('300ms cubic-bezier(0.680, -0.550, 0.265, 1.550)', style({transform: 'rotate({{startAngles}}deg) scale(1)'})),
-                animate('300ms 300ms cubic-bezier(0.680, -0.550, 0.265, 1.550)', style('*'))
+                animate('{{enterWingTime}}ms cubic-bezier(0.680, -0.550, 0.265, 1.550)', style({transform: 'rotate({{startAngles}}deg) scale(1)'})),
+                animate('{{enterWingTime}}ms {{enterWingTime}}ms cubic-bezier(0.680, -0.550, 0.265, 1.550)', style('*'))
             ]),
             transition(':leave', [
-                animate('300ms cubic-bezier(0.680, -0.550, 0.265, 1.550)', style({transform: 'rotate({{startAngles}}deg) scale(1)'})),
-                animate('300ms 300ms cubic-bezier(0.680, -0.550, 0.265, 1.550)', style({transform: 'rotate({{startAngles}}deg) scale(0)'}))
+                animate('{{leaveWingTime}}ms cubic-bezier(0.680, -0.550, 0.265, 1.550)', style({transform: 'rotate({{startAngles}}deg) scale(1)'})),
+                animate('{{leaveWingTime}}ms {{leaveWingTime}}ms cubic-bezier(0.680, -0.550, 0.265, 1.550)', style({transform: 'rotate({{startAngles}}deg) scale(0)'}))
             ]),
         ]),
         trigger('scaleWing', [
@@ -48,6 +48,10 @@ export class MenuWingComponent implements OnChanges, OnInit, AfterViewInit, OnDe
     @Output() public wingHovered = new EventEmitter<IMenuWing>();
     @Output() public wingSpinning = new EventEmitter<boolean>();
 
+    @Input() public leaveWingTime: number;
+    @Input() public enterWingTime: number;
+
+
     public startAngles: number;
     public rotateDeg: number;
     public scaleWingState: boolean = false;
@@ -60,10 +64,10 @@ export class MenuWingComponent implements OnChanges, OnInit, AfterViewInit, OnDe
     private wingSpunDegs: number = 0;
     private wingSpunSubscriptionId: Subscription;
 
-    constructor( private menuOptions: MenuOptions,
-                 private spinService: SpinService,
-                 private elm: ElementRef,
-                 private renderer: Renderer2 ) {
+    constructor(private menuOptions: MenuOptions,
+                private spinService: SpinService,
+                private elm: ElementRef,
+                private renderer: Renderer2) {
         this.menuConfig = this.menuOptions.MenuConfig;
     }
 
@@ -71,7 +75,7 @@ export class MenuWingComponent implements OnChanges, OnInit, AfterViewInit, OnDe
         this.calculateWingIconSizeAndPosition();
 
         this.wingSpunSubscriptionId = this.spinService.wingSpun.subscribe(
-            ( data: number ) => {
+            (data: number) => {
                 this.wingSpunDegs = data;
                 this.setWingIconTransformStyle(this.wingSpunDegs);
             }
@@ -82,13 +86,20 @@ export class MenuWingComponent implements OnChanges, OnInit, AfterViewInit, OnDe
         this.wingSpunSubscriptionId.unsubscribe();
     }
 
-    public ngOnChanges( changes: SimpleChanges ): void {
+    public ngOnChanges(changes: SimpleChanges): void {
 
         // When the menu's position changes,
         // recalculate each wing's and its icon rotation degrees
         if (changes['position']) {
             this.startAngles = this.menuOptions.StartAngles[this.position];
-            this.rotateWingState = {value: '', params: {startAngles: this.startAngles}};
+            this.rotateWingState = {
+                value: '',
+                params: {
+                    startAngles: this.startAngles,
+                    leaveWingTime: this.leaveWingTime,
+                    enterWingTime: this.enterWingTime
+                }
+            };
             this.rotateDeg = this.startAngles +
                 (this.index * this.menuConfig.angle);
             this.setWingTransformStyle();
@@ -108,7 +119,13 @@ export class MenuWingComponent implements OnChanges, OnInit, AfterViewInit, OnDe
      * Binding to rotateWing animation
      * */
     @HostBinding('@rotateWing')
-    public rotateWingState: any = {value: '', params: {startAngles: 0}};
+    public rotateWingState: any = {
+        value: '', params: {
+            startAngles: 0,
+            leaveWingTime: this.leaveWingTime,
+            enterWingTime: this.enterWingTime
+        }
+    };
 
     /**
      * Mouse hover on the wing
@@ -135,7 +152,7 @@ export class MenuWingComponent implements OnChanges, OnInit, AfterViewInit, OnDe
     /**
      * Record the pan start position
      * */
-    public onPanStart( event: any ): void {
+    public onPanStart(event: any): void {
         if (this.menuConfig.spinable) {
             this.wingSpinning.emit(true);
             this.spinService.setStartPosition(event.center);
@@ -145,7 +162,7 @@ export class MenuWingComponent implements OnChanges, OnInit, AfterViewInit, OnDe
     /**
      * Spin the whole menu
      * */
-    public spinMenu( event: any ): void {
+    public spinMenu(event: any): void {
         if (this.menuConfig.spinable) {
             this.scaleWingState = false;
             this.spinService.calculateSpinDegrees(event.center);
@@ -155,7 +172,7 @@ export class MenuWingComponent implements OnChanges, OnInit, AfterViewInit, OnDe
     /**
      * Record the pan end position
      * */
-    public onPanEnd( event: any ): void {
+    public onPanEnd(event: any): void {
         if (this.menuConfig.spinable) {
             this.wingSpinning.emit(false);
             this.spinService.setLastSpinDegrees(event.center);
@@ -177,7 +194,7 @@ export class MenuWingComponent implements OnChanges, OnInit, AfterViewInit, OnDe
     /**
      * Set wing icon transform style
      * */
-    private setWingIconTransformStyle( deg: number ): void {
+    private setWingIconTransformStyle(deg: number): void {
         if (this.menuConfig.showIcons || this.menuConfig.onlyIcons) {
             this.renderer.setStyle(this.wingIconElm.nativeElement, 'transform', 'translate(' + this.iconX + 'px, ' + this.iconY + 'px) rotate(' + (this.rotateDeg + deg) * -1 + 'deg)');
             this.renderer.setStyle(this.wingIconElm.nativeElement, '-webkit-transform', 'translate(' + this.iconX + 'px, ' + this.iconY + 'px) rotate(' + (this.rotateDeg + deg) * -1 + 'deg)');
